@@ -99,6 +99,10 @@ class ArchiveFileParser(object):
             resist = resist_regex.search(field.td.text)
             level = level_regex.search(field.td.text)
             if stat is not None:
+                # Ignore stats on items with random affixes
+                if ItemHasRandomAffix(itemVersion["name"]):
+                    return
+
                 itemVersion[str(stat.group(3)).lower()] = int(stat.group(1))
             elif resist is not None:
                 itemVersion["resistances"][str(resist.group(3)).lower()] = int(resist.group(1))
@@ -107,7 +111,7 @@ class ArchiveFileParser(object):
             else:
                 # effects from spells
                 spell_effects = field.td.findChildren("a", class_ = ["itemeffectlink", "spell"])
-
+                spell_index = 0
                 for effect in spell_effects:
                     for br in effect.find_all("br"):
                         br.replace_with(" ")
@@ -120,13 +124,14 @@ class ArchiveFileParser(object):
 
                     tooltip = effect.text
 
-                    itemVersion["effects"].append(ItemSpell(spellId, tooltip))
+                    itemVersion["effects"].append(ItemSpell(spell_index, spellId, tooltip))
+                    spell_index += 1
 
                 # flavour text or profession requirement, whatever
                 if len(spell_effects) == 0:
                     if "Equip:" in field.td.text:
                         # equip effect with unknown spell ID. add it. happens with early snapshots from thott
-                        itemVersion["effects"].append(ItemSpell(-1, field.td.text))
+                        itemVersion["effects"].append(ItemSpell(len(itemVersion["effects"])+1, -1, field.td.text))
                     else:
                         itemVersion["flavour"] = field.td.text
 
@@ -185,7 +190,7 @@ class AllakhazamFileParser(ArchiveFileParser):
         for sclass in name_span_classes:
             name = item_div.find("span", attrs = {"class": sclass})
             if name is not None:
-                itemVersion["name"] = name.text
+                itemVersion["name"] = ItemRandomSuffixStrip(name.text)
                 itemVersion["quality"] = sclass
                 break
 
@@ -193,7 +198,7 @@ class AllakhazamFileParser(ArchiveFileParser):
             for fcolour in self._font_quality:
                 name = item_div.find("font", attrs = {"color": fcolour})
                 if name is not None:
-                    itemVersion["name"] = name.text
+                    itemVersion["name"] = ItemRandomSuffixStrip(name.text)
                     itemVersion["quality"] = fcolour
                     break
 
@@ -215,7 +220,7 @@ class AllakhazamFileParser(ArchiveFileParser):
 
         else:
             # different parsing if no table
-            pass
+            print "AllakhazamFileParser: Snapshot has no item div"
 
         #pprint(itemVersion)
 
@@ -284,7 +289,7 @@ class ThottbotFileParser(ArchiveFileParser):
         for sclass in name_span_classes:
             name = display.find("span", attrs = {"class": sclass})
             if name is not None:
-                itemVersion["name"] = name.text
+                itemVersion["name"] = ItemRandomSuffixStrip(name.text)
                 itemVersion["quality"] = sclass
                 break
 

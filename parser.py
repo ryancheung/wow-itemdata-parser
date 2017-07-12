@@ -93,9 +93,9 @@ def parse_directory(directory, patchLevel, parser):
                         item_id = ItemNameToID(item["name"])
 
                         # of the Boar, of the Eagle, etc
-                        if item_id < 0 and item["name"] is not None and ("of the" in item["name"]):
+                        if item_id < 0 and item["name"] is not None:
                             try:
-                                item_id = ItemNameToID(item["name"][:item["name"].index("of")-1])
+                                item_id = ItemNameToID(item["name"])
                             except ValueError:
                                 pass
 
